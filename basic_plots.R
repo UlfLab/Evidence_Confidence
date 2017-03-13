@@ -26,137 +26,106 @@ rm(list=ls())
 source("essential_functions_libraries.R")
 
 # Load my.data (if it is not already present)
-if (!exists("my.data")){
-  load("confidence_attention.RData")
-  print("loading my.data")
+if (!exists("my.data.P2")){
+  load("ce_data_P2.RData")
+  print("loading my.data.P2")
 }
 
-# Graphs settings
-dodge <- position_dodge(.5)
-fig<- list() #container for figures
-colorScheme<-c("#F5A503","#56D9CD", "#3AA1BF") #yellow, l.blue, d.blue
+if (!exists("my.data.P3")){
+  load("ce_data_P3.RData")
+  print("loading my.data.P3")
+}
+
+# SELECT WITH WHICH PHASE I WANT TO WORK
+my.data<-my.data.P3
+
 
 ####################################################################
 
-### ACCURACY
-fig.accuracy <- list()
 
+
+### ACCURACY
 s.accuracy<-
   my.data %>% 
-  group_by(participant,social3) %>%
+  group_by(participant,weight,strength_prop) %>%
   summarise(mean_corr=mean(key_resp_direction.corr*100),N=length(key_resp_direction.corr))
 
 p.accuracy <-
-  ggplot(aes(y=mean_corr,x=social3,fill=social3),data=s.accuracy) +
+  ggplot(aes(y=mean_corr,x=strength_prop),data=s.accuracy) +
   geom_bar(stat='identity',position="dodge") +
   ylab("Proportion correct") + xlab("") + theme_classic()+
-  geom_hline(yintercept=0,linetype="dashed") +
-  scale_fill_manual(values=colorScheme)
+  geom_hline(yintercept=0,linetype="dashed")
+
 
 f.accuracy <- group_by(s.accuracy,participant) %>%
   do(ACC = p.accuracy %+% ., 
-     ACC_F = p.accuracy + facet_wrap(~ participant))
-#f.accuracy$ACC_F
+     ACC_F = p.accuracy + facet_grid(weight~participant))
+#f.accuracy$ACC_F[[1]]
+
 ### RT - MEAN
 s.RT.M<-
-  group_by(my.data,participant,c_choice,social3)%>%
+  group_by(my.data,participant,c_choice)%>%
   summarise(meanCorr=mean(key_resp_direction.rt,na.rm=T))
 
 p.RT.M <- 
-  ggplot(aes(y=meanCorr,x=social3,fill=social3),data=s.RT.M) + 
+  ggplot(aes(y=meanCorr,x=c_choice),data=s.RT.M) + 
   geom_bar(stat='identity',position="dodge")+
   ylab("RT") + xlab("")+theme_classic() +
-  geom_hline(yintercept=0,linetype="dashed")+
-  scale_fill_manual(values=c(colorScheme,"grey"))+
-  facet_wrap(~c_choice)
+  geom_hline(yintercept=0,linetype="dashed")
+
 
 f.RT.M <- group_by(s.RT.M,participant) %>%
   do(RT.M = p.RT.M %+% .,
-     RT.M_F = p.RT.M + facet_grid(c_choice~participant))
+     RT.M_F = p.RT.M + facet_wrap(~participant))
 f.RT.M$RT.M_F[[1]]
-### RT - SI COMPARED TO no SI
-s.RT.SI<-
-  group_by(my.data,participant,c_choice,social3)%>%
-  summarise(meanCorr=mean(key_resp_direction.rt,na.rm=T))%>%
-  spread(social3,meanCorr)%>%
-  mutate(Invalid=invalid-none,Valid=valid-none)%>%
-  gather(socialInfo,meanCorr,Invalid,Valid)
-
-p.RT.SI <- 
-  ggplot(aes(y=meanCorr,x=socialInfo,fill=socialInfo),data=s.RT.SI) + 
-  geom_bar(stat='identity',position="dodge")+
-  ylab("RT") + xlab("compared to no SI")+theme_classic() +
-  geom_hline(yintercept=0,linetype="dashed")+
-  scale_fill_manual(values=c(colorScheme,"grey"))+
-  facet_wrap(~c_choice)
-
-f.RT.SI <- group_by(s.RT.SI,participant) %>%
-  do(RT.SI = p.RT.SI %+% .,
-     RT.SI_F = p.RT.SI + facet_grid(c_choice~participant))
 
 ### RT - DISTRIBUTION
 p.RT.D <- 
   ggplot(aes(x=zRT,fill=c_choice),data=my.data) + 
-  geom_density(alpha=0.2) +
-  facet_wrap(~ social3)
+  geom_density(alpha=0.2)
+
 
 f.RT.D <- group_by(my.data,participant)%>%
   do(RT.D = p.RT.D %+% .,
-     RT.D_F = p.RT.D + facet_grid(social3~participant))
-#f.RT.D$RT.D_F
+     RT.D_F = p.RT.D + facet_wrap(~participant))
+#f.RT.D$RT.D_F[[1]]
+
 ### CONFIDENCE - MEAN
 s.conf.M<-
-  group_by(my.data,participant,c_choice,social3)%>%
+  filter(my.data,conf>0.1,weight==1.25)%>%
+  group_by(participant,strength_prop)%>%
   summarise(meanCorr=mean(zConf,na.rm=T))
 
 p.conf.M <- 
-  ggplot(aes(y=meanCorr,x=social3,fill=social3),data=s.conf.M) + 
+  ggplot(aes(y=meanCorr,x=strength_prop),data=s.conf.M) + 
   geom_bar(stat='identity',position="dodge")+
-  ylab("Confidence") + xlab("")+theme_classic() +
-  geom_hline(yintercept=0,linetype="dashed")+
-  scale_fill_manual(values=c(colorScheme,"grey"))+
-  facet_wrap(~c_choice)
+  ylab("Confidence") + xlab("")+theme_classic()
+
 
 f.conf.M <- group_by(s.conf.M,participant) %>%
   do(conf.M = p.conf.M %+% .,
-     conf.M_F = p.conf.M + facet_grid(c_choice~participant))
+     conf.M_F = p.conf.M + facet_wrap(~participant))
 f.conf.M$conf.M_F[1]
 ### CONFIDENCE - DISTRIBUTION
-p.conf.D <- 
-  ggplot(aes(x=zConf,fill=c_choice),data=my.data) + 
-  geom_density(alpha=0.2) +
-  facet_wrap(~ social3)
+s.conf.D<-
+  my.data %>% 
+  filter(conf>0.1,weight==1.25)
 
-f.conf.D <- group_by(my.data,participant)%>%
+p.conf.D <- 
+  ggplot(aes(x=zConf,fill=c_choice),data=s.conf.D) + 
+  geom_density(alpha=0.2) +
+  ylim(0,4) +
+
+f.conf.D <- group_by(s.conf.D,participant,strength_prop)%>%
   do(conf.D = p.conf.D %+% .,
-     conf.D_F = p.conf.D + facet_grid(social3~participant))
+     conf.D_F = p.conf.D + facet_wrap(~participant))
 f.conf.D$conf.D_F[1]
 
-### CONFIDENCE - SI COMPARED TO no SI
-s.conf.SI<-
-  group_by(my.data,participant,c_choice,social3)%>%
-  summarise(meanCorr=mean(zConf,na.rm=T))%>%
-  spread(social3,meanCorr)%>%
-  mutate(Invalid=invalid-none,Valid=valid-none)%>%
-  gather(socialInfo,meanCorr,Invalid,Valid)
 
-p.conf.SI <- 
-  ggplot(aes(y=meanCorr,x=socialInfo,fill=socialInfo),data=s.conf.SI) + 
-  geom_bar(stat='identity',position="dodge")+
-  ylab("Confidence") + xlab("compared to no SI")+theme_classic() +
-  geom_hline(yintercept=0,linetype="dashed")+
-  scale_fill_manual(values=c(colorScheme,"grey"))+
-  facet_wrap(~c_choice)
-
-f.conf.SI <- group_by(s.RT.SI,participant) %>%
-  do(conf.SI = p.conf.SI %+% .,
-     conf.SI_F = p.conf.SI + facet_grid(c_choice~participant))
-
-f.conf.SI$conf.SI_F[1]
 ### PUT ALL PLOTS INTO A SINGLE TABLE
 
 # create a list with all data.frames to be merged
-f.all <- list(f.accuracy,f.conf.D,f.conf.M,f.conf.SI,f.RT.D,f.RT.M,f.RT.SI)
+f.all <- list(f.accuracy,f.conf.D,f.conf.M,f,f.RT.D,f.RT.M)
 
 # use reduce to call function merge (merges two data.frames)
 basic_plots <- Reduce(function(...) merge(...,by = "participant", all = TRUE), f.all)
