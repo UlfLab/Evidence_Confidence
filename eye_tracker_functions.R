@@ -59,7 +59,8 @@ trial_eye_track_data<-function(){
   eye.data<-
     eye.data %>% 
     filter(trial>0) %>% 
-    filter(V2>0)
+    filter(V2>0)%>% 
+    filter(V8>0)
  return (eye.data)
 }
 
@@ -68,18 +69,28 @@ trial_eye_track_data<-function(){
 ### ADD THE START/END OF EYE FIXATIONS 
  
 # IDENTIFY FIXATION POINTS
-    # THere are positioned at X=420px and Y=525px and X=1260px and Y= 525.
-    # THe fixation cross is at X=840 and Y= 525.
-    # Gratings are 420px horizontally and 262,5px vertically
-    # meaning everything from 210 to 630 is left and everything from 1030 to 1450
-    # we assume that everything from 740 to 940 is fixation cross
+    # The screen has reslutoin of 1680x1050
+    # the positions & sizes of grates are given by height of the screen (1050)
+    #   
+    #   -> size 0.4*height across
+    # THe fixation cross 
+    #   ->positioned at the centre of the screen at X=840 and Y= 525
+    #   ->lenght: 0.2*(1680/2) = 168 (+17 margin) , height: 0.1*1050 = 105 (+11 margin)
+    #   -> FIXATION CROSS: x = 748 - 933
+    
+    # THe grates 
+    #  -> positioned 0.5*height from the centre of the screen
+    #  -> Y= 525, LEFT: X=840-525=315px, RIGHT: X=840+525=1365px
+    #  -> have a diameter of 0.4*1050=420 (+ 42px = 10% margin) 
+    #  -> LEFT: x = 84 - 546px; RIGHT: x = 1134 - 1596
+
 
 fixation_eye_track_data<-function(eye.data){
 
   # create vector with the x-axis boundaries for each position
-  left.bounds<-c(210,630)
-  right.bounds<-c(1050,1470)
-  fixation.bounds<-c(740,940)
+  left.bounds<-c(84,546)
+  right.bounds<-c(1134,1596)
+  fixation.bounds<-c(748,933)
   
   eye.data$fix<-"none"
   eye.data$fix[(eye.data$V2-left.bounds[1])*(eye.data$V2-left.bounds[2])<0]<-c("left")

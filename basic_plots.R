@@ -47,14 +47,16 @@ my.data<-my.data.P3
 ### ACCURACY
 s.accuracy<-
   my.data %>% 
-  group_by(participant,weight,strength_prop) %>%
+  group_by(participant) %>%
   summarise(mean_corr=mean(key_resp_direction.corr*100),N=length(key_resp_direction.corr))
 
 p.accuracy <-
-  ggplot(aes(y=mean_corr,x=strength_prop),data=s.accuracy) +
+  ggplot(aes(y=mean_corr,x=as.factor(participant)),data=s.accuracy) +
   geom_bar(stat='identity',position="dodge") +
   ylab("Proportion correct") + xlab("") + theme_classic()+
-  geom_hline(yintercept=0,linetype="dashed")
+  geom_hline(yintercept=0,linetype="dashed") + 
+  geom_hline(yintercept=70) + 
+  geom_hline(yintercept=80) 
 
 
 f.accuracy <- group_by(s.accuracy,participant) %>%
@@ -109,14 +111,13 @@ f.conf.M$conf.M_F[1]
 ### CONFIDENCE - DISTRIBUTION
 s.conf.D<-
   my.data %>% 
-  filter(conf>0.1,weight==1.25)
+  filter(conf>0.1)
 
 p.conf.D <- 
   ggplot(aes(x=zConf,fill=c_choice),data=s.conf.D) + 
-  geom_density(alpha=0.2) +
-  ylim(0,4) +
+  geom_density(alpha=0.2) 
 
-f.conf.D <- group_by(s.conf.D,participant,strength_prop)%>%
+f.conf.D <- group_by(s.conf.D,participant)%>%
   do(conf.D = p.conf.D %+% .,
      conf.D_F = p.conf.D + facet_wrap(~participant))
 f.conf.D$conf.D_F[1]
