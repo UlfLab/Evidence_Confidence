@@ -27,6 +27,20 @@ if (!exists("my.data")){
   print("loading my.data")
 }
 
+### NUMBER OF TRIALS ##################################################################
+
+s.trials<-
+  my.data %>% 
+  filter(conf>0.1) %>%
+  filter(!is.na(dt_diff)) %>%
+  group_by(participant) %>%
+  summarise(N=n())
+
+p.trials<-
+  ggplot(aes(y=N,x=as.factor(participant)),data=s.trials) +
+  geom_bar(stat='identity',position="dodge")
+
+
 ### ACCURACY ##################################################################
 
 s.accuracy<-
@@ -41,8 +55,8 @@ p.accuracy <-
   ylab("Proportion correct") + xlab("") + theme_classic()+
   geom_hline(yintercept=0) + 
   geom_hline(yintercept=70,linetype="dashed") + 
-  geom_hline(yintercept=85,linetype="dashed") + 
-  geom_hline(yintercept=60,linetype="dashed") 
+  geom_hline(yintercept=82.5,linetype="dashed") + 
+  geom_hline(yintercept=57.5,linetype="dashed") 
 
 f.accuracy <- group_by(s.accuracy,participant) %>%
   do(ACC = p.accuracy %+% ., 
@@ -53,19 +67,25 @@ f.accuracy <- group_by(s.accuracy,participant) %>%
 s.RT.M<-
   my.data %>% 
   filter(conf>0.1) %>%
-  group_by(participant,c_choice)%>%
-  summarise(meanCorr=mean(key_resp_direction.rt,na.rm=T))
+  group_by(participant2,c_choice)%>%
+  summarise(meanCorr=mean(key_resp_direction.rt,na.rm=T),
+            sd_cor=sd(key_resp_direction.rt),
+            N=n(),
+            se_cor= sd(key_resp_direction.rt)/ sqrt(n()),
+            ymin=mean(key_resp_direction.rt)-sd(key_resp_direction.rt)/ sqrt(n()),
+            ymax=mean(key_resp_direction.rt)+sd(key_resp_direction.rt)/ sqrt(n()))
 
 p.RT.M <- 
-  ggplot(aes(y=meanCorr,x=c_choice),data=s.RT.M) + 
+  ggplot(aes(y=meanCorr,x=c_choice,fill=c_choice),data=s.RT.M) + 
   geom_bar(stat='identity',position="dodge")+
   ylab("RT") + xlab("")+theme_classic() +
-  geom_hline(yintercept=0,linetype="dashed")
+  geom_hline(yintercept=0,linetype="dashed")+
+  geom_errorbar(aes(ymin=ymin,ymax=ymax),width=0.3)
 
 
-f.RT.M <- group_by(s.RT.M,participant) %>%
+f.RT.M <- group_by(s.RT.M,participant2) %>%
   do(RT.M = p.RT.M %+% .,
-     RT.M_F = p.RT.M + facet_wrap(~participant))
+     RT.M_F = p.RT.M + facet_wrap(~participant2,scales="free_y"))
 f.RT.M$RT.M_F[[1]]
 
 ### RT - DISTRIBUTION ###########################################################
@@ -82,19 +102,26 @@ f.RT.D <- group_by(my.data,participant)%>%
 s.conf.M<-
   my.data %>% 
   filter(conf>0.1)%>%
-  group_by(participant,c_choice)%>%
-  summarise(meanCorr=mean(zConf,na.rm=T))
+  filter(participant2!=115)%>%
+  group_by(c_choice)%>%
+  summarise(meanCorr=mean(zConf,na.rm=T),
+            sd_cor=sd(zConf),
+            N=n(),
+            se_cor= sd(zConf)/ sqrt(n()),
+            ymin=mean(zConf)-sd(zConf)/ sqrt(n()),
+            ymax=mean(zConf)+sd(zConf)/ sqrt(n()))
+
 
 p.conf.M <- 
   ggplot(aes(y=meanCorr,x=c_choice,fill=c_choice),data=s.conf.M) + 
   geom_bar(stat='identity',position="dodge")+
   ylab("Confidence") + xlab("")+theme_classic() +
-  geom_hline(yintercept=0)
+  geom_hline(yintercept=0) + geom_errorbar(aes(ymin=ymin,ymax=ymax),width=0.3)
 
 
-f.conf.M <- group_by(s.conf.M,participant) %>%
+f.conf.M <- group_by(s.conf.M,participant2) %>%
   do(conf.M = p.conf.M %+% .,
-     conf.M_F = p.conf.M + facet_wrap(~participant))
+     conf.M_F = p.conf.M + facet_wrap(~participant2,scales="free_y"))
 f.conf.M$conf.M_F[1]
 
 ### CONFIDENCE - DISTRIBUTION ###################################################
@@ -106,9 +133,9 @@ p.conf.D <-
   ggplot(aes(x=zConf,fill=c_choice),data=s.conf.D) + 
   geom_density(alpha=0.2) 
 
-f.conf.D <- group_by(s.conf.D,participant)%>%
+f.conf.D <- group_by(s.conf.D,participant2)%>%
   do(conf.D = p.conf.D %+% .,
-     conf.D_F = p.conf.D + facet_wrap(~participant))
+     conf.D_F = p.conf.D + facet_wrap(~participant2))
 f.conf.D$conf.D_F[1]
 
 

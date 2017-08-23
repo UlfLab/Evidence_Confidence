@@ -34,6 +34,8 @@ db.folder<-get.dropbox.folder()
 
 # current data directory (on dropbox)
 data.folder<-c(paste(db.folder,"\\UlfGesaRasmus\\Confidence_Task_Magda\\confidence_grates\\Versions of the Task\\arrow_no_social\\data",sep=""))
+data.folder<-"C:\\Users\\Heekeren\\Downloads\\arrow_no_social\\arrow_no_social\\Data"
+
 
 # get names of the eye traking files
 files.eye<-list.files(path=data.folder,pattern='gaze.txt',full.names=T)
@@ -53,9 +55,10 @@ eye.data.fixations<-list()
 eye.data.analysis<-list()
 eye.participant<-NULL
 
+eye.participant<-as.numeric(str_extract(files.eye,"[[:digit:]]{4,5}"))
+
 for(i in 1:length(files.eye)){
 
-  eye.participant[i]<-as.numeric(str_extract(files.eye[i],"[[:digit:]]{4,5}"))
   print(eye.participant[i])
   
   #Create a file.txt that is then read by the next function
@@ -99,5 +102,5 @@ my.data$dwell_unchosen<-ifelse(my.data$key_resp_direction.keys=="left",my.data$d
 my.data$first_fix_correct <- ifelse(my.data$first_fix==my.data$correct,1,0)
 
 ### SAVE FILE ##################################################################
-save(my.data,file='!Data/ce_eyetracking.RData') 
+save(my.data,file='ce_eyetracking.RData') 
 

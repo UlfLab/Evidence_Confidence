@@ -18,15 +18,17 @@ rm(list=ls())
 source("essential_functions_libraries.R")
 
 #get dropbox folder
-db.folder<-get.dropbox.folder()
+#db.folder<-get.dropbox.folder()
 
 #current data directory (on dropbox)
-data.folder<-c(paste(db.folder,"\\UlfGesaRasmus\\Confidence_Task_Magda\\confidence_grates\\Versions of the Task\\arrow_no_social\\Data",sep=""))
+#data.folder<-c(paste(db.folder,"\\UlfGesaRasmus\\Confidence_Task_Magda\\confidence_grates\\Versions of the Task\\arrow_no_social\\Data",sep=""))
+data.folder<-"C:\\Users\\Heekeren\\Downloads\\arrow_no_social\\arrow_no_social\\Data"
+
 
 # participants to exclude
-part.excl<-c(7671,2292)
-  # 7671 - task crashed
-  # 2192 - lots of trials lost during ET analysis
+part.excl<-c(1152,1153,8872,8862)
+  # 8872,8862 - too high accuracy
+  # 1152,1153 - lots of trials with low confidence (did he get the task???)
 ################################################################################
 
 ### READ IN PHASE 2
@@ -53,6 +55,9 @@ my.data$c_choice<-factor(my.data$key_resp_direction.corr,labels=c("incorrect","c
 # zRT - normalized RT (????)
 my.data[,zRT:=scale(as.numeric(key_resp_direction.rt,na.rm=T)),by=participant]
 
+#participant ID across sessions
+my.data$participant2<-substring(my.data$participant,1,3)
+
 ### BASIC STATS
 
 # how many trials without answer 
@@ -60,6 +65,9 @@ my.data[,zRT:=scale(as.numeric(key_resp_direction.rt,na.rm=T)),by=participant]
 
 # Calculate the number or participants
 #no.part<-length(unique(my.data$participant))
+
+# participants ids
+b.participant <- unique(my.data$participant)
 
 ### SAVE IT
 save(my.data,file='ce_data.RData') 
