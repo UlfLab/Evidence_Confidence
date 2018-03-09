@@ -19,7 +19,7 @@ source("functions_eyetrack.R")
 
 # participants to exclude (if present use those generated in the read_in_data)
 if (!exists("part.excl")){
-  part.excl<-c(99999)
+  part.excl<-c(9999)
 }
 
 # If my.data is not present,source them from read_in_data
@@ -29,12 +29,9 @@ if (!exists("my.data")){
 
 ### READ IN EYE TRACKING FILES ######################################################
 
-# get dropbox folder
-db.folder<-get.dropbox.folder()
-
 # current data directory (on dropbox)
-data.folder<-c(paste(db.folder,"\\UlfGesaRasmus\\Confidence_Task_Magda\\confidence_grates\\Versions of the Task\\arrow_no_social\\data",sep=""))
-data.folder<-"C:\\Users\\Heekeren\\Downloads\\arrow_no_social\\arrow_no_social\\Data"
+data.folder<-"C:\\Users\\Majda\\ownCloud\\Confidence_Task_Magda\\Confidence_grates\\arrow_no_social\\Data_cleanedUp"
+
 
 
 # get names of the eye traking files
@@ -42,7 +39,7 @@ files.eye<-list.files(path=data.folder,pattern='gaze.txt',full.names=T)
 
 # exclude participants
 for(i in 1: length(part.excl)){
-  helper<-str_detect(files.eye,pattern=paste(part.excl[i],"*",sep=""))
+  helper<-str_detect(files.eye,pattern=paste(part.excl[i],".",sep=""))
   files.eye<-files.eye[!helper]
 }
 rm(helper)
@@ -102,5 +99,5 @@ my.data$dwell_unchosen<-ifelse(my.data$key_resp_direction.keys=="left",my.data$d
 my.data$first_fix_correct <- ifelse(my.data$first_fix==my.data$correct,1,0)
 
 ### SAVE FILE ##################################################################
-save(my.data,file='ce_eyetracking.RData') 
+save(my.data,file='!Data\\data_eyetracking.RData') 
 

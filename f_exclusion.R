@@ -1,0 +1,47 @@
+### EXCLUSION CRITERIA AND NUMBER OF EXCLUDED TRIALS BY PARTICIPANT ########################
+
+
+exclusion <- function (my.data) {
+  s.trials<-
+    my.data %>% 
+    group_by(participant) %>%
+    summarise(N=n())
+  
+  s.et<-
+    my.data[!with(my.data,is.na(duration_right)& is.na(duration_fix)&is.na(duration_left)),] %>% 
+    group_by(participant) %>%
+    summarise(N=n())
+  
+  s.sample<-
+    my.data %>% 
+    filter(!is.na(dt_diff)) %>%
+    group_by(participant) %>%
+    summarise(N=n())
+  
+  s.noResp<-
+    my.data %>% 
+   filter(key_resp_direction.keys!="None") %>%
+  #  filter(!resp.key%in%c("None","[]") | !is.na(resp.key)) %>% 
+    filter(!is.na(dt_diff)) %>%
+    group_by(participant) %>%
+    summarise(N=n())
+  
+  s.conf<-
+    my.data %>%
+    filter(conf>0.1) %>%
+    filter(!is.na(dt_diff)) %>%
+    group_by(participant) %>%
+    summarise(N=n())
+  
+  s.exclusion<-
+    s.trials %>% 
+    mutate(et=s.trials$N-s.et$N,
+           sample=s.et$N-s.sample$N,
+           noResp=s.sample$N-s.noResp$N,
+           conf=s.noResp$N-s.conf$N,
+           all=s.trials$N-s.conf$N)
+           #all=s.trials$N-s.noResp$N) %>% 
+
+  
+  return(s.exclusion)
+}

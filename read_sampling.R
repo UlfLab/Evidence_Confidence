@@ -15,15 +15,17 @@
 source("functions_essentials.R")
 source("functions_eyetrack.R")
 
+# If eye.data.fixations is not present,source it from read_in_eyetrack
+if (!exists("eye.data.fixations")){
+  source("read_eyetrack.R")
+}
+
 # participants to exclude (if present use those generated in the read_in_data)
 if (!exists("part.excl")){
   part.excl<-c(99999)
 }
 
-# If eye.data.fixations is not present,source it from read_in_eyetrack
-if (!exists("eye.data.fixations")){
-  source("read_in_eyetrack.R")
-}
+
 
 ### READ IN EYE TRACKING FILES ###############################################
 # get dropbox folder
@@ -50,9 +52,8 @@ eye.trial.data<-list()
 
 for(i in 1:length(files.eye)){
   print(eye.participant[i])
-  eye.participant[i]<-as.numeric(str_extract(files.eye[i],"[[:digit:]]{4,5}"))
-  
-  eye.trial.data[[i]]<-eye_tracker_trialFixation(eye.data.list2[[i]])
+
+  eye.trial.data[[i]]<-eye_tracker_trialFixation(eye.data.fixations[[i]])
   eye.trial.data[[i]]$participant<-eye.participant[i]
   
 }

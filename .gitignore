@@ -2,3 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
+file.txt
+*.jpg
+*.jpeg
+*.png
+**/_Analysis
+**/_Data
