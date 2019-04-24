@@ -4,33 +4,32 @@
 exclusion <- function (my.data) {
   s.trials<-
     my.data %>% 
-    group_by(participant) %>%
+    group_by(partSes_ID) %>%
     summarise(N=n())
   
   s.et<-
-    my.data[!with(my.data,is.na(duration_right)& is.na(duration_fix)&is.na(duration_left)),] %>% 
-    group_by(participant) %>%
+    my.data[!with(my.data,is.na(dwell_right)& is.na(dwell_fix)&is.na(dwell_left)),] %>% 
+    group_by(partSes_ID) %>%
     summarise(N=n())
   
   s.sample<-
     my.data %>% 
     filter(!is.na(dt_diff)) %>%
-    group_by(participant) %>%
+    group_by(partSes_ID) %>%
     summarise(N=n())
   
   s.noResp<-
     my.data %>% 
-   filter(key_resp_direction.keys!="None") %>%
-  #  filter(!resp.key%in%c("None","[]") | !is.na(resp.key)) %>% 
+   filter(response.keys!="None") %>%
     filter(!is.na(dt_diff)) %>%
-    group_by(participant) %>%
+    group_by(partSes_ID) %>%
     summarise(N=n())
   
   s.conf<-
     my.data %>%
     filter(conf>0.1) %>%
     filter(!is.na(dt_diff)) %>%
-    group_by(participant) %>%
+    group_by(partSes_ID) %>%
     summarise(N=n())
   
   s.exclusion<-
@@ -39,8 +38,9 @@ exclusion <- function (my.data) {
            sample=s.et$N-s.sample$N,
            noResp=s.sample$N-s.noResp$N,
            conf=s.noResp$N-s.conf$N,
-           all=s.trials$N-s.conf$N)
-           #all=s.trials$N-s.noResp$N) %>% 
+           all=s.trials$N-s.conf$N,
+           final = N -all)
+           
 
   
   return(s.exclusion)

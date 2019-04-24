@@ -3,147 +3,119 @@
 ### Accuracy ######################################
 sex.accuracy<-
   my.data.d %>% 
-  group_by(participant,sex) %>%
-  summarise(acc_mean=mean(key_resp_direction.corr*100))
+  group_by(part_ID,sex) %>%
+  summarise(acc=mean(response.corr*100))
 
-ggplot(aes(y=acc_mean,x=sex),data=sex.accuracy) +
+ggplot(aes(y=acc,x=sex),data=sex.accuracy) +
   geom_boxplot() +
-  ylab("Proportion correct") + xlab("") + theme_classic()+
-  geom_hline(yintercept=c(55,70,85),linetype="dashed")
+  ylab("Proportion correct") + xlab("") + theme_bw()
+  
+summary(lm(acc ~ sex,data= sex.accuracy ))
 
-t.test(sex.accuracy$acc_mean~sex.accuracy$sex)
+wilcox.test(sex.accuracy$acc_mean~sex.accuracy$sex)
 
 
 ### RT ############################################
+
+summary(lmer(response.rt ~ sex*choice + (1|part_ID:session),data= my.data.d ))
+
+mixed(response.rt ~ sex + (1|part_ID:session),data= my.data.d,method = "LRT")
+
+ggplot (aes(y=response.rt, x=sex),data=my.data.d) + geom_boxplot()
+
+
 sex.rt<-
   my.data.d %>% 
-  group_by(participant2,sex)%>%
-  summarise(key_resp_direction.rt_mean=mean(key_resp_direction.rt),
+  group_by(partSes_ID,sex)%>%
+  summarise(response.rt_mean=mean(response.rt),
             N=n())
 
-ggplot(aes(y=key_resp_direction.rt_mean,x=sex),data=sex.rt) + 
+ggplot(aes(y=response.rt_mean,x=sex),data=sex.rt) + 
   geom_boxplot() +
-  ylab("RT") + xlab("")+theme_classic() + 
-  geom_hline(yintercept=0,linetype="dashed")
+  ylab("RT") + xlab("")+theme_bw() 
 
-t.test(sex.rt$key_resp_direction.rt_mean~sex.rt$sex)
+wilcox.test(sex.rt$response.rt_mean~sex.rt$sex)
 
-sex.rt2<-
-  my.data.d %>% 
-  group_by(participant,sex,c_choice)%>%
-  summarise(key_resp_direction.rt_mean=mean(key_resp_direction.rt)) %>% 
-  spread(c_choice,key_resp_direction.rt_mean) %>% 
-  mutate(rt_difference=incorrect-correct)
-
-ggplot(aes(y=rt_difference,x=sex),data=sex.rt2) + 
-  geom_boxplot() +
-  ylab("RT") + xlab("")+theme_classic()  +
-  geom_hline(yintercept=0,linetype="dashed")
-
-t.test(sex.rt2$rt_difference~sex.rt2$sex)
+t.test(sex.rt$response.rt_mean~sex.rt$sex)
 
 
 ### zCONF ############################################
+
+summary(lmer(conf ~ sex*choice + (1|part_ID:session),data= my.data.d ))
+
 sex.conf<-
   my.data.d %>% 
-  group_by(participant,sex,c_choice)%>%
-  summarise(zConf_mean=mean(zConf)) %>% 
-  spread(c_choice,zConf_mean) %>% 
-  mutate(zConf_difference=correct-incorrect)
+  group_by(partSes_ID,sex,choice)%>%
+  summarise(zConf_mean=mean(zConf)) 
 
-ggplot(aes(y=zConf_difference,x=sex),data=sex.conf) + 
+ggplot(aes(y=zConf_mean,x=sex,fill=choice),data=sex.conf) + 
   geom_boxplot() +
-  ylab("RT") + xlab("")+theme_classic()  +
+  ylab("zConf") + xlab("")+theme_classic()  +
   geom_hline(yintercept=0,linetype="dashed")
 
-t.test(sex.conf2$zConf_difference~sex.conf2$sex)
-
-
-### BIAS and TIME ###########################################
-my.data.a<- 
-  my.data.d %>%
-  mutate(bias_r=duration_right/(duration_left+duration_right),
-         bias_ch=(dwell_chosen)/(dwell_chosen+dwell_unchosen),
-         bias=abs((dwell_chosen-dwell_unchosen)/(dwell_chosen+dwell_unchosen))) %>%
-  mutate(time=(duration_left+duration_right)/1000000) %>%
-  group_by(participant) %>% 
-  mutate(bin_bias_r = ntile(bias_r, 5),
-         bin_bias_ch = ntile(bias_ch,5),
-         bin_time = ntile(time, 5),
-         zBias_r=scale(bias_r),
-         zBias_ch=scale(bias_ch),
-         zTime = scale(time)) %>% 
-  mutate(ch_right=ifelse(key_resp_direction.keys=="right",1,0),
-         first_r=ifelse(first_fix=="right",1,0),
-         last_r=ifelse(last_fix=="right",1,0))
 
 ### BIAS - CHOICE ###########################################
-sex_rBias<-
-  as.data.frame(my.data.a)%>% 
-  group_by(bin_bias_r,participant,sex) %>%
-  summarise_at(vars(ch_right,bias_r), funs(mean,sd,sem,ymin,ymax))
 
-ggplot(aes(y=ch_right_mean,x=as.factor(bin_bias_r),col=sex),data=sex_rBias)+
-  geom_boxplot() +
-  ylab("% RIGHT chosen") + xlab("RIGHT - sampling bias") + theme_classic() 
-ggsave(filename="!Analysis\\choice_Bias_sex_boxplot.jpg", width = 15, height = 15, units = "cm")
+fit.ch.s <- glmer(choice_l ~ zBias_l*sex+(1|part_ID:session),data= my.data.d, family=binomial())
+fit.ch.s <- glmer(choice_l ~ zBias_l*sex+sex*group_l+(1|part_ID:session),data= my.data.d, family=binomial())
 
-#ANOVA
-fit <- aov(ch_right_mean ~ sex + bin_bias_r , data=sex_rBias) #+ sex:bin_bias_r
-summary(fit)
+
+plot_model(fit.ch.s,show.values = TRUE, show.p=TRUE)
+
+sex_lBias<-
+  as.data.frame(my.data.d)%>% 
+  group_by(bin_bias_l,partSes_ID,sex) %>%
+  summarise_at(vars(choice_l,bias_l), funs(mean,sd,sem,ymin,ymax))
+
+ggplot(aes(y=choice_l_mean,x=as.factor(bin_bias_l),col=sex),data=sex_lBias)+
+  geom_boxplot() + ylab("% LEFT chosen") + xlab("LEFT - sampling bias") + theme_classic() 
+
 
 ### BIAS - CONF and ACCURACY ##################################
+fit.acc.s <- glmer(response.corr ~ zBias_ch*group_ch+zBias_ch*sex+zTime*sex+(1|part_ID:session),data= my.data.d, family=binomial())
+plot_model(fit.acc.s,show.values = TRUE, show.p=TRUE)
+
+fit.conf.s <- lmer(zConf ~ zBias_ch*sex+zTime*sex+(1|part_ID:session),data= my.data.d)
+plot_model(fit.conf.s,show.values = TRUE, show.p=TRUE)
+
 sex_chBias<-
-  as.data.frame(my.data.a) %>%
-  group_by(participant,bin_bias_ch,sex) %>% 
-  summarise_at(vars(zConf,bias_ch,key_resp_direction.corr),funs(mean,sd,sem,ymin,ymax))
+  as.data.frame(my.data.d) %>%
+  group_by(partSes_ID,bin_bias_ch,sex) %>% 
+  summarise_at(vars(zConf,bias_ch,response.corr),funs(mean,sd,sem,ymin,ymax))
 
 ## CONF
 ggplot(aes(y=zConf_mean,x=as.factor(bin_bias_ch), col=sex),data=sex_chBias)+
   geom_boxplot() +
-  ylab("zConfidence") + xlab("CHOSEN - sampling bias") + theme_classic() 
+  ylab("zConfidence") + xlab("CHOSEN - sampling bias") + theme_bw() 
 ggsave(filename="!Analysis\\zConf_Bias_sex_boxplot.jpg", width = 15, height = 15, units = "cm")
 
-#ANOVA
-fit <- aov(zConf_mean ~ sex + bin_bias_ch + sex:bin_bias_ch, data=sex_chBias) #+ sex:bin_bias_r
-summary(fit)
-
 ## ACCURACY
-ggplot(aes(y=key_resp_direction.corr_mean,x=as.factor(bin_bias_ch), col=sex),data=sex_chBias)+
+ggplot(aes(y=response.corr_mean,x=as.factor(bin_bias_ch), col=sex),data=sex_chBias)+
   geom_boxplot() +
-  ylab("Accuracy") + xlab("CHOSEN - sampling bias") + theme_classic() 
+  ylab("Accuracy") + xlab("CHOSEN - sampling bias") + theme_bw() 
 ggsave(filename="!Analysis\\Accuracy_Bias_sex_boxplot.jpg", width = 15, height = 15, units = "cm")
 
-#ANOVA
-fit <- aov(key_resp_direction.corr_mean ~ sex + bin_bias_ch + sex:bin_bias_ch, data=sex_chBias) #+ sex:bin_bias_r
-summary(fit)
 
 ### TIME - CONFIDENCE, ACCURACY ################################
 sex_time<-
-  as.data.frame(my.data.a) %>%
-  group_by(participant,bin_time,sex) %>% 
-  summarise_at(vars(zConf,time,key_resp_direction.corr),funs(mean,sd,sem,ymin,ymax))
+  as.data.frame(my.data.d) %>%
+  group_by(partSes_ID,bin_time,sex) %>% 
+  summarise_at(vars(zConf,time,response.corr),funs(mean,sd,sem,ymin,ymax))
 
 ## zCONF
 ggplot(aes(y=zConf_mean,x=as.factor(bin_time),col=sex),data=sex_time)+
   geom_boxplot() +
-  ylab("zConfidence") + xlab("time") + theme_classic() 
-ggsave(filename="!Analysis\\zConf_time_sex_boxplot.jpg", width = 15, height = 15, units = "cm")
+  ylab("zConfidence") + xlab("time") + theme_bw() 
+ggsave(filename="_Analysis\\zConf_time_sex_boxplot.jpg", width = 15, height = 15, units = "cm")
 
-#ANOVA
-fit <- aov(zConf_mean ~ sex + bin_time + sex:bin_time, data=sex_time) #+ sex:bin_bias_r
-summary(fit)
 
 ## ACCURACY
-ggplot(aes(y=key_resp_direction.corr_mean,x=as.factor(bin_time),col=sex),data=sex_time)+
+ggplot(aes(y=response.corr_mean,x=as.factor(bin_time),col=sex),data=sex_time)+
   geom_boxplot() +
-  ylab("Accuracy") + xlab("time") + theme_classic() 
-ggsave(filename="!Analysis\\Accuracy_time_sex_boxplot.jpg", width = 15, height = 15, units = "cm")
+  ylab("Accuracy") + xlab("time") + theme_bw() 
+ggsave(filename="_Analysis\\Accuracy_time_sex_boxplot.jpg", width = 15, height = 15, units = "cm")
 
 
-#ANOVA
-fit <- aov(key_resp_direction.corr_mean ~ sex + bin_time + sex:bin_time, data=sex_time) #+ sex:bin_bias_r
-summary(fit)
 
 
 

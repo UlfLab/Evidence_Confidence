@@ -2,156 +2,126 @@
 
 my.data.tilt<-
   as.data.frame(my.data.a) %>% 
-  mutate(tilt_diff=abs(Rtilt-Ltilt)) %>% 
-  mutate(tilt_diff2=ifelse(tilt_diff<180,tilt_diff,tilt_diff-180),
-         tilt_diff3=abs(tilt_diff2-90)) %>% 
-  group_by(participant) %>% 
-  mutate(bin_tilt = ntile(tilt_diff2,5),
-         bin_tilt3 = ntile(tilt_diff3,5)) 
+  mutate(tilt_diff=abs(Rtilt-Ltilt),
+         tilt_diff2=ifelse(tilt_diff<180,tilt_diff,tilt_diff-180)) %>% 
+  mutate(bin_tilt2 = ntile(tilt_diff2,5),
+         zTilt2 = scale(tilt_diff2))
 
 ### Accuracy ####
+
+summary(glmer(response.corr~zTilt2+(1|partSes_ID),data=my.data.tilt,family=binomial()))
+
 tilt.accuracy <-
   my.data.tilt %>% 
-  group_by(participant,bin_tilt) %>% 
-  summarise_at(vars(key_resp_direction.corr,zConf,key_resp_direction.rt,tilt_diff2), 
+  group_by(partSes_ID,bin_tilt2) %>% 
+  summarise_at(vars(response.corr,zConf,response.rt), 
                funs(mean,sd,sem,ymin,ymax,N=length))
   
 # boxplot
-ggplot(aes(y=key_resp_direction.corr_mean,x=as.factor(bin_tilt)),data=tilt.accuracy)+
+ggplot(aes(y=response.corr_mean,x=as.factor(bin_tilt2)),data=tilt.accuracy)+
   geom_boxplot()
 ggsave(filename="!Analysis\\Accuracy_tilt_boxplot.jpg", width = 10, height = 10, units = "cm")
 
-# point
-ggplot(aes(y=key_resp_direction.corr_mean,x=tilt_diff2_mean),data=s.tilt)+
-  geom_point(aes(col=participant),show.legend = FALSE)
+### RT ############################################
+
+summary(lmer(response.rt ~ zTilt2*choice + (1|part_ID:session),data= my.data.tilt))
+
+ggplot (aes(y=response.rt, x=as.factor(bin_tilt2)),data=my.data.tilt) + geom_boxplot()
 
 
-### Confidence ####
-tilt.conf <-
+tilt.rt<-
   my.data.tilt %>% 
-  group_by(participant,bin_tilt,c_choice) %>% 
-  summarise_at(vars(key_resp_direction.corr,zConf,key_resp_direction.rt,tilt_diff2), 
-               funs(mean,sd,sem,ymin,ymax,N=length))
+  group_by(partSes_ID,bin_tilt2)%>%
+  summarise(response.rt_mean=mean(response.rt),
+            N=n())
 
-# boxplot
-ggplot(aes(y=zConf_mean,x=as.factor(bin_tilt),col=c_choice),data=tilt.conf)+ geom_boxplot()
-ggsave(filename="!Analysis\\zConf_tilt_boxplot.jpg", width = 10, height = 10, units = "cm")
-
-# point - facet
-ggplot(aes(y=zConf_mean,x=tilt_diff2_mean, col=c_choice),data=tilt.conf)+
-  geom_point()+
-  facet_wrap(~participant,scales="free") + 
-  geom_errorbar(aes(ymin=zConf_ymin,ymax=zConf_ymax),width=0.025)
- 
-### Confidence- difference
-tilt.conf2<-
-  tilt.conf %>% 
-  select(c_choice,zConf_mean,participant,bin_tilt) %>% 
-  spread(c_choice,zConf_mean) %>% 
-  mutate(zConf_difference=correct-incorrect)
-
-# boxplot
-ggplot(aes(y=zConf_difference,x=as.factor(bin_tilt)),data=tilt.conf2) + 
+ggplot(aes(y=response.rt_mean,x=as.factor(bin_tilt2)),data=tilt.rt) + 
   geom_boxplot() +
-  ylab("zConf") + xlab("")+theme_classic()  +
-  geom_hline(yintercept=0,linetype="dashed")
+  ylab("RT") + xlab("tilt - bins")+theme_bw() 
 
-fit <- aov(zConf_difference ~ bin_tilt3, data=tilt.conf) #+ sex:bin_bias_r
-summary(fit)
+### zCONF ############################################
 
+summary(lmer(conf ~ zTilt2*choice + (1|part_ID:session),data= my.data.tilt ))
 
-### Reaction time ####
-tilt.rt <-
+summary(lmer(conf ~ as.factor(bin_tilt2) + (1|part_ID:session),data= my.data.tilt ))
+
+summary(lmer(conf ~ zTilt2 + (1|part_ID:session),data= my.data.tilt ))
+
+tilt.conf<-
   my.data.tilt %>% 
-  group_by(participant,bin_tilt,c_choice) %>% 
-  summarise_at(vars(key_resp_direction.corr,zConf,key_resp_direction.rt,tilt_diff2), 
-               funs(mean,sd,sem,ymin,ymax,N=length))
-# boxplot
-ggplot(aes(y=key_resp_direction.rt_mean,x=as.factor(bin_tilt),col=c_choice),data=tilt.rt)+ geom_boxplot()
-ggsave(filename="!Analysis\\RT_tilt_boxplot.jpg", width = 10, height = 10, units = "cm")
+  group_by(partSes_ID,bin_tilt2,choice)%>%
+  summarise(zConf_mean=mean(zConf)) 
 
-# reaction time - correct and incorrect
-tilt.rt2<-
-  tilt.rt %>% 
-  select(key_resp_direction.rt_mean,participant,bin_tilt,c_choice) %>% 
-  spread(c_choice,key_resp_direction.rt_mean) %>% 
-  mutate(rt_difference=incorrect-correct)
-
-ggplot(aes(y=rt_difference,x=as.factor(bin_tilt)),data=tilt.rt2) + 
+ggplot(aes(y=zConf_mean,x=as.factor(bin_tilt2),fill=choice),data=tilt.conf) + 
   geom_boxplot() +
-  ylab("RT") + xlab("")+theme_classic()  +
-  geom_hline(yintercept=0,linetype="dashed") 
+  ylab("zConf") + xlab("")+theme_bw()
 
-### Bias and Time 
-  
+### BIAS - CHOICE ###########################################
 
-
-
-### BIAS AND TIME ####
-my.data.a<- 
-  my.data.a %>%
-  mutate(bias_r=duration_right/(duration_left+duration_right),
-         bias_ch=(dwell_chosen)/(dwell_chosen+dwell_unchosen),
-         bias=abs((dwell_chosen-dwell_unchosen)/(dwell_chosen+dwell_unchosen))) %>%
-  mutate(time=(duration_left+duration_right)/1000000) %>%
-  group_by(participant) %>% 
-  mutate(bin_bias_r = ntile(bias_r, 5),
-         bin_bias_ch = ntile(bias_ch,5),
-         bin_time = ntile(time, 5),
-         zBias_r=scale(bias_r),
-         zBias_ch=scale(bias_ch),
-         zTime = scale(time)) %>% 
-  mutate(ch_right=ifelse(key_resp_direction.keys=="right",1,0),
-         first_r=ifelse(first_fix=="right",1,0),
-         last_r=ifelse(last_fix=="right",1,0))
+fit.ch.tilt <- glmer(choice_l ~ zBias_l*zTilt2+(1|part_ID:session),data= my.data.tilt, family=binomial())
+fit.ch.tilt <- glmer(choice_l ~ as.factor(bin_tilt2)+(1|part_ID:session),data= my.data.tilt, family=binomial())
 
 
-### BIAS AND CHOICE ####
-tilt_rBias<-
+plot_model(fit.ch.tilt,show.values = TRUE, show.p=TRUE,show.intercept = TRUE)
+
+tilt_lBias<-
   as.data.frame(my.data.tilt)%>% 
-  group_by(bin_bias_r,participant,bin_tilt) %>%
-  summarise_at(vars(ch_right,bias_r), funs(mean,sd,sem,ymin,ymax))
+  group_by(bin_bias_l,partSes_ID,bin_tilt2) %>%
+  summarise_at(vars(choice_l,bias_l), funs(mean,sd,sem,ymin,ymax))
 
-ggplot(aes(y=ch_right_mean,x=as.factor(bin_bias_r),col=as.factor(bin_tilt)),data=tilt_rBias)+
-  geom_boxplot() +
-  ylab("% RIGHT chosen") + xlab("RIGHT - sampling bias") + theme_classic() 
+ggplot(aes(y=choice_l_mean,x=as.factor(bin_tilt2)),data=tilt_lBias)+
+  geom_boxplot() + ylab("% LEFT chosen") + xlab("LEFT - sampling bias") + theme_bw() 
 
-### BIAS AND CONFIDENCE/ACCURACY ####
+
+### BIAS - CONF and ACCURACY ##################################
+fit.acc.tilt <- glmer(response.corr ~ zBias_ch*zTilt2+zTime*zTilt2+(1|part_ID:session),data= my.data.tilt, family=binomial())
+fit.acc.tilt <- glmer(response.corr ~ as.factor(bin_bias_ch)*as.factor(bin_tilt2)+zTime+(1|part_ID:session),data= my.data.tilt, family=binomial())
+
+plot_model(fit.acc.tilt,show.values = TRUE, show.p=TRUE)
+
+fit.conf.tilt <- lmer(zConf ~ zBias_ch*zTilt2+zTime*zTilt2+(1|part_ID:session),data= my.data.tilt)
+fit.conf.tilt <- lmer(zConf ~ as.factor(bin_bias_ch)*as.factor(bin_tilt2)+zTime+(1|part_ID:session),data= my.data.tilt)
+plot_model(fit.conf.tilt,show.values = TRUE, show.p=TRUE)
+
 tilt_chBias<-
   as.data.frame(my.data.tilt) %>%
-  group_by(participant,bin_bias_ch,bin_tilt) %>% 
-  summarise_at(vars(zConf,bias_ch,key_resp_direction.corr),funs(mean,sd,sem,ymin,ymax))
+  group_by(partSes_ID,bin_bias_ch,bin_tilt2) %>% 
+  summarise_at(vars(zConf,bias_ch,response.corr),funs(mean,sd,sem,ymin,ymax))
 
 ## CONF
-ggplot(aes(y=zConf_mean,x=as.factor(bin_bias_ch), col=as.factor(bin_tilt)),data=tilt_chBias)+
+ggplot(aes(y=zConf_mean,x=as.factor(bin_bias_ch), col=as.factor(bin_tilt2)),data=tilt_chBias)+
   geom_boxplot() +
-  ylab("zConfidence") + xlab("CHOSEN - sampling bias") + theme_classic() 
-ggsave(filename="!Analysis\\zConf_Bias_tilt_boxplot.jpg", width = 10, height = 10, units = "cm")
+  ylab("zConfidence") + xlab("CHOSEN - sampling bias") + theme_bw() 
+ggsave(filename="_Analysis\\zConf_Bias_sex_boxplot.jpg", width = 15, height = 15, units = "cm")
 
 ## ACCURACY
-ggplot(aes(y=key_resp_direction.corr_mean,x=as.factor(bin_bias_ch), col=as.factor(bin_tilt)),data=tilt_chBias)+
+ggplot(aes(y=response.corr_mean,x=as.factor(bin_bias_ch), col=as.factor(bin_tilt2)),data=tilt_chBias)+
   geom_boxplot() +
-  ylab("% correct") + xlab("CHOSEN - sampling bias [bin]") + theme_classic() 
+  ylab("Accuracy") + xlab("CHOSEN - sampling bias") + theme_bw() 
+ggsave(filename="_Analysis\\Accuracy_Bias_sex_boxplot.jpg", width = 15, height = 15, units = "cm")
 
 
-### TIME ####
+### TIME - CONFIDENCE, ACCURACY ################################
 tilt_time<-
   as.data.frame(my.data.tilt) %>%
-  group_by(participant,bin_time,bin_tilt) %>% 
-  summarise_at(vars(zConf,time,key_resp_direction.corr),funs(mean,sd,sem,ymin,ymax))
+  group_by(partSes_ID,bin_time,bin_tilt2) %>% 
+  summarise_at(vars(zConf,time,response.corr),funs(mean,sd,sem,ymin,ymax))
 
 ## zCONF
-ggplot(aes(y=zConf_mean,x=as.factor(bin_time),col=as.factor(bin_tilt)),data=tilt_time)+
+ggplot(aes(y=zConf_mean,x=as.factor(bin_time),col=as.factor(bin_tilt2)),data=tilt_time)+
   geom_boxplot() +
-  ylab("zConfidence") + xlab("time [bin]") + theme_classic() 
-ggsave(filename="!Analysis\\zConf_time_tilt_boxplot.jpg", width = 15, height = 15, units = "cm")
+  ylab("zConfidence") + xlab("time") + theme_bw() 
+ggsave(filename="_Analysis\\zConf_time_sex_boxplot.jpg", width = 15, height = 15, units = "cm")
 
-fit <- aov(zConf_mean ~ bin_tilt + bin_time + bin_tilt:bin_time, data=tilt_time) 
-summary(fit)
 
 ## ACCURACY
-ggplot(aes(y=key_resp_direction.corr_mean,x=as.factor(bin_time),col=as.factor(bin_tilt)),data=tilt_time)+
+ggplot(aes(y=response.corr_mean,x=as.factor(bin_time),col=as.factor(bin_tilt2)),data=tilt_time)+
   geom_boxplot() +
-  ylab("Accuracy") + xlab("time") + theme_classic() 
-ggsave(filename="!Analysis\\Accuracy_time_tilt_boxplot.jpg", width = 10, height = 10, units = "cm")
+  ylab("Accuracy") + xlab("time") + theme_bw() 
+ggsave(filename="_Analysis\\Accuracy_time_sex_boxplot.jpg", width = 15, height = 15, units = "cm")
+
+
+
+
+
 
